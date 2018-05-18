@@ -6,6 +6,8 @@ public class Ticket2Ride
 	private static PrintStream out = System.out;
 	public static TreeMap<String, Integer> citiesMap = new TreeMap<>();
 	public static TreeMap<Integer, String> cityIds = new TreeMap<>();
+	public static TreeSet<Ticket> tickets = new TreeSet<>();
+	public static TreeMap<Integer, Integer> ticketCities = new TreeMap<>();
 	private static int[][] adjMat;
 	private static int[][] apsp;
 	private static int[][] path;
@@ -82,9 +84,6 @@ public class Ticket2Ride
 			System.exit(0);
 		}
 		out.printf("Map initialized for %s%n", map);
-		// create list to hold tickets
-		TreeSet<Ticket> tickets = new TreeSet<>();
-		TreeMap<Integer, Integer> ticketCities = new TreeMap<>();
 		// command prompt loop
 		in.nextLine();
 		String[] command = readCmd(in, "> ");
@@ -108,26 +107,26 @@ public class Ticket2Ride
 					// check cities
 					if (!checkCities(command))
 						continue;
-					// can't add a ticket from city to same city
-					if (command[1].equals(command[2]))
+
+					String cityA = command[1];
+					String cityB = command[2];
+					try
 					{
-						out.println("! Can't add ticket to and from the same city.");
-						continue;
-					}
-					// create new ticket
-					Ticket newTicket = new Ticket(command[1], command[2]);
-					if (tickets.contains(newTicket))
-						out.printf("! The ticket %s to %s has already been added.%n", command[1], command[2]);
-					else
+						addTicket(cityA, cityB);
+						out.printf("Added ticket %s to %s%n", cityA, cityB);
+					} catch (Exception ex)
 					{
-						// add new ticket
-						tickets.add(newTicket);
-						// increment city usages
-						ticketCities.put(newTicket.aIdx(), ticketCities.getOrDefault(newTicket.aIdx(), 0) + 1);
-						ticketCities.put(newTicket.bIdx(), ticketCities.getOrDefault(newTicket.bIdx(), 0) + 1);
-						out.printf("Added ticket %s to %s%n", command[1], command[2]);
-						// out.printf("%s is used in %d tickets%n", command[1], ticketCities.get(citiesMap.get(command[1]))); // TODO: Remove for release
-						// out.printf("%s is used in %d tickets%n", command[2], ticketCities.get(citiesMap.get(command[2]))); // TODO: Remove for release
+						String errmsg = ex.getMessage();
+						if (errmsg.startsWith("1"))
+						{
+							// can't add a ticket from city to same city
+							out.println("! Can't add ticket to and from the same city.");
+						}
+						else if (errmsg.startsWith("2"))
+						{
+							// <tickets> list already contains this ticket
+							out.printf("! The ticket %s to %s has already been added.%n", cityA, cityB);
+						}
 					}
 				}
 			}
@@ -164,8 +163,6 @@ public class Ticket2Ride
 						else
 							ticketCities.put(toRemove.bIdx(), bTimes - 1);
 						out.printf("Removed ticket %s to %s%n", command[1], command[2]);
-						// out.printf("%s is now used in %d tickets.%n", toRemove.aCity(), aTimes - 1); // TODO: Remove for release
-						// out.printf("%s is now used in %d tickets.%n", toRemove.bCity(), bTimes - 1); // TODO: Remove for release
 					}
 					else
 					{
@@ -389,6 +386,24 @@ public class Ticket2Ride
 			}
 		}
 		out.println("\n--- Thanks for playing! ---\n");
+	}
+
+	public static void addTicket(String cityA, String cityB) throws Exception
+	{
+		// check if cities are identical
+		if (cityA.equals(cityB))
+			throw new Exception(String.format("1: Cities are identical (%s)", cityA));
+
+		// 
+		Ticket newTicket = new Ticket(cityA, cityB);
+		if (tickets.contains(newTicket))
+			throw new Exception(String.format("2: Ticket already in list (%s - %s)", cityA, cityB));
+
+		// add new ticket
+		tickets.add(newTicket);
+		// increment city usages
+		ticketCities.put(newTicket.aIdx(), ticketCities.getOrDefault(newTicket.aIdx(), 0) + 1);
+		ticketCities.put(newTicket.bIdx(), ticketCities.getOrDefault(newTicket.bIdx(), 0) + 1);
 	}
 
 	public static boolean checkCities(String[] command)
