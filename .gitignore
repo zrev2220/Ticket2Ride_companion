@@ -1,0 +1,6 @@
+*.xlsx
+*.class
+*.txt
+!usa.txt
+*.xml
+*.sublime-*
