@@ -196,7 +196,6 @@ public class Ticket2Ride
 				}
 				else
 				{
-					out.println("Not supported yet");
 					// check cities
 					if (!checkCities(command))
 						continue;
@@ -298,11 +297,6 @@ public class Ticket2Ride
 							{
 								mst.add(nextEdge);
 								mst_cost += nextEdge.first();
-								if (nextEdge.first() > 1000000)
-								{
-									// all routes are blocked to this city
-									out.printf("Cannot connect all cities");
-								}
 								unionFind.unionSet(nextEdge.second(), nextEdge.third());
 							}
 							if (unionFind.sizeOfSet(nextEdge.second()) == ticketCities.size())
@@ -330,14 +324,22 @@ public class Ticket2Ride
 						}
 
 						// step 4: print routes to claim
-						out.printf("Route%s to claim:%n", routes.size() == 1 ? "" : "s");
-						for (IntegerTriple e : routes)
-							out.printf(" - %s to %s%n", cityIds.get(e.first()), cityIds.get(e.second()));
+						if (mst_cost < 1000000)
+						{
+							out.printf("Route%s to claim:%n", routes.size() == 1 ? "" : "s");
+							for (IntegerTriple e : routes)
+								out.printf(" - %s to %s%n", cityIds.get(e.first()), cityIds.get(e.second()));
 
-						if (mst_cost <= 45)
-							out.printf("You will need %d trains to claim these routes.%n", mst_cost);
+							if (mst_cost <= 45)
+								out.printf("You will need %d trains to claim these routes.%n", mst_cost);
+							else
+								out.printf("You will need MORE THAN 45 TRAINS (%d) to claim these routes.%n", mst_cost);
+						}
 						else
-							out.printf("You will need MORE THAN 45 TRAINS (%d) to claim these routes.%n", mst_cost);
+						{
+							// cost over 1 million, so algorithm had no choice but to use a blocked route
+							out.println("Cannot connect all cities - All routes are blocked to one of the cities.");
+						}
 					}
 					else if ("SLOW".startsWith(command[1].toUpperCase()))
 					{
