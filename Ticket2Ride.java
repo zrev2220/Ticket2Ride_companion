@@ -156,12 +156,10 @@ public class Ticket2Ride
 					}
 				}
 			}
-			else if ("reset".startsWith(command[0])) // remove ticket
+			else if ("reset".startsWith(command[0])) // reset tickets & blocks
 			{
-				tickets.clear();
-				ticketCities.clear();
+				resetModel();
 				out.println("All tickets removed");
-				// TODO: Unblock all routes too
 			}
 			else if ("tickets".startsWith(command[0])) // print tickets
 			{
@@ -183,19 +181,15 @@ public class Ticket2Ride
 					if (!checkCities(command))
 						continue;
 
-					// increment edge weight by 1000000 to prevent its use in path computations
-					int a = citiesMap.get(command[1]);
-					int b = citiesMap.get(command[2]);
-					if (adjMat[a][b] > 1000000)
+					String cityA = command[1];
+					String cityB = command[2];
+					try
 					{
-						out.printf("! %s to %s is already blocked.%n", command[1], command[2]);
-					}
-					else
+						blockRoute(true, cityA, cityB);
+						out.printf("Blocked route %s to %s%n", cityA, cityB);
+					} catch (Exception ex)
 					{
-						adjMat[a][b] += 1000000;
-						adjMat[b][a] += 1000000;
-						apspConstructed = false;
-						out.printf("Blocked route %s to %s%n", command[1], command[2]);
+						out.printf("! %s to %s is already blocked.%n", cityA, cityB);
 					}
 				}
 			}
@@ -209,24 +203,19 @@ public class Ticket2Ride
 				}
 				else
 				{
-					out.println("Not supported yet");
 					// check cities
 					if (!checkCities(command))
 						continue;
 
-					// increment edge weight by 1000000 to prevent its use in path computations
-					int a = citiesMap.get(command[1]);
-					int b = citiesMap.get(command[2]);
-					if (adjMat[a][b] < 1000000)
+					String cityA = command[1];
+					String cityB = command[2];
+					try
 					{
-						out.printf("! %s to %s is already unblocked.%n", command[1], command[2]);
-					}
-					else
+						blockRoute(false, cityA, cityB);
+						out.printf("Unblocked route %s to %s%n", cityA, cityB);
+					} catch (Exception ex)
 					{
-						adjMat[a][b] -= 1000000;
-						adjMat[b][a] -= 1000000;
-						apspConstructed = false;
-						out.printf("Unblocked route %s to %s%n", command[1], command[2]);
+						out.printf("! %s to %s is already unblocked.%n", cityA, cityB);
 					}
 				}
 			}
@@ -250,84 +239,28 @@ public class Ticket2Ride
 
 					if ("MST".startsWith(command[1].toUpperCase()))
 					{
-						// minimum spanning tree: shortest path to connect all cities
-						// actually NP-hard Steiner Tree problem
-						// will use 2-approximation technique to solve
-
-						// step 1: build metric closure of cities (in form of edge list)
-						ArrayList<Triple<Integer, Integer, Integer>> edgeList = new ArrayList<>();
-						for (int city : ticketCities.keySet())
+						try
 						{
-							for (int city2 : ticketCities.keySet())
-							{
-								if (city != city2)
-								{
-									Triple<Integer, Integer, Integer> edge = new Triple<>(apsp[city][city2], city, city2); // form: weight, u, v; sort by weight
-									edgeList.add(edge);
-								}
-							}
-						}
-						Collections.sort(edgeList);
-
-						// step 2: find MST of cities on metric closure graph
-						UnionFind unionFind = new UnionFind(citiesMap.size());
-						ArrayList<Triple<Integer, Integer, Integer>> mst = new ArrayList<>();
-						int mst_cost = 0;
-						for (int i = 0; i < edgeList.size(); ++i)
-						{
-							Triple<Integer, Integer, Integer> nextEdge = edgeList.get(i);
-							if (!unionFind.isSameSet(nextEdge.second(), nextEdge.third()))
-							{
-								mst.add(nextEdge);
-								mst_cost += nextEdge.first();
-								unionFind.unionSet(nextEdge.second(), nextEdge.third());
-							}
-							if (unionFind.sizeOfSet(nextEdge.second()) == ticketCities.size())
-							{
-								// all cities connected, can quit early
-								break;
-							}
-						}
-						edgeList = null; // don't need this anymore
-
-						// step 3: expand edges in metric closure mst to full paths in original graph
-						ArrayList<Triple<Integer, Integer, Integer>> routes = new ArrayList<>();
-						for (Triple<Integer, Integer, Integer> edge : mst)
-						{
-							// for each edge in mst...
-							// ...follow path in <path> and add each edge to <routes>
-							int currentV = edge.second();
-							int lastV = edge.third();
-							while (currentV != lastV)
-							{
-								int nextV = path[currentV][lastV];
-								routes.add(new Triple<>(currentV, nextV, 0)); // last element 0 since we don't care about weight anymore
-								currentV = nextV;
-							}
-						}
-
-						// step 4: print routes to claim
-						if (mst_cost < 1000000)
-						{
+							Object[] result = steinerTreeApprox();
+							int cost = (int) result[0];
+							ArrayList<Triple<Integer, Integer, Integer>> routes = (ArrayList<Triple<Integer, Integer, Integer>>) result[1];
+							
 							out.printf("Route%s to claim:%n", routes.size() == 1 ? "" : "s");
 							for (Triple<Integer, Integer, Integer> e : routes)
 								out.printf(" - %s to %s%n", cityIds.get(e.first()), cityIds.get(e.second()));
 
-							if (mst_cost <= 45)
-								out.printf("You will need %d trains to claim these routes.%n", mst_cost);
+							if (cost <= 45)
+								out.printf("You will need %d trains to claim these routes.%n", cost);
 							else
-								out.printf("You will need MORE THAN 45 TRAINS (%d) to claim these routes.%n", mst_cost);
-						}
-						else
+								out.printf("You will need MORE THAN 45 TRAINS (%d) to claim these routes.%n", cost);
+						} catch (Exception ex)
 						{
-							// cost over 1 million, so algorithm had no choice but to use a blocked route
 							out.println("Cannot connect all cities - All routes are blocked to one of the cities.");
 						}
 					}
 					else if ("SLOW".startsWith(command[1].toUpperCase()))
 					{
 						out.println("Not supported yet");
-
 					}
 					else if ("TSP".startsWith(command[1].toUpperCase()))
 					{
@@ -405,6 +338,110 @@ public class Ticket2Ride
 		// decrement <ticketCities> entries
 		ticketCities.computeIfPresent(toRemove.aIdx(), (key, value) -> value == 1 ? null : value - 1);
 		ticketCities.computeIfPresent(toRemove.bIdx(), (key, value) -> value == 1 ? null : value - 1);
+	}
+
+	public static void resetModel()
+	{
+		// remove all tickets
+		tickets.clear();
+		ticketCities.clear();
+		// TODO unblock all routes
+	}
+
+	public static void blockRoute(boolean block, String cityA, String cityB) throws Exception
+	{
+		// increment/decrement edge weight by 1000000 to prevent/allow its use in path computations
+		int a = citiesMap.get(cityA);
+		int b = citiesMap.get(cityB);
+		int delta = block ? 1 : -1;
+		if (!(adjMat[a][b] > 1000000 ^ block))
+		{
+			throw new Exception(String.format("Route already %sblocked (%s - %s)", !block ? "un" : "", cityA, cityB));
+		}
+		else
+		{
+			adjMat[a][b] += 1000000 * delta;
+			adjMat[b][a] += 1000000 * delta;
+			apspConstructed = false;
+		}
+	}
+
+	public static Object[] steinerTreeApprox() throws Exception
+	{
+		// minimum spanning tree: shortest path to connect all cities
+		// actually NP-hard Steiner Tree problem
+		// will use 2-approximation technique to solve
+
+		// step 1: build metric closure of cities (in form of edge list)
+		ArrayList<Triple<Integer, Integer, Integer>> edgeList = new ArrayList<>();
+		for (int city : ticketCities.keySet())
+		{
+			for (int city2 : ticketCities.keySet())
+			{
+				if (city != city2)
+				{
+					Triple<Integer, Integer, Integer> edge = new Triple<>(apsp[city][city2], city, city2); // form: weight, u, v; sort by weight
+					edgeList.add(edge);
+				}
+			}
+		}
+		Collections.sort(edgeList);
+
+		// step 2: find MST of cities on metric closure graph
+		UnionFind unionFind = new UnionFind(citiesMap.size());
+		ArrayList<Triple<Integer, Integer, Integer>> mst = new ArrayList<>();
+		int mst_cost = 0;
+		for (int i = 0; i < edgeList.size(); ++i)
+		{
+			Triple<Integer, Integer, Integer> nextEdge = edgeList.get(i);
+			if (!unionFind.isSameSet(nextEdge.second(), nextEdge.third()))
+			{
+				mst.add(nextEdge);
+				mst_cost += nextEdge.first();
+				if (mst_cost >= 1000000)
+				{
+					// cost over 1 million, so algorithm had no choice but to use a blocked route
+					throw new Exception("Unable to connect all cities");
+				}
+				unionFind.unionSet(nextEdge.second(), nextEdge.third());
+			}
+			if (unionFind.sizeOfSet(nextEdge.second()) == ticketCities.size())
+			{
+				// all cities connected, can quit early
+				break;
+			}
+		}
+		edgeList = null; // don't need this anymore
+
+		// step 3: expand edges in metric closure mst to full paths in original graph
+		ArrayList<Triple<Integer, Integer, Integer>> routes = new ArrayList<>();
+		for (Triple<Integer, Integer, Integer> edge : mst)
+		{
+			// for each edge in mst...
+			// ...follow path in <path> and add each edge to <routes>
+			int currentV = edge.second();
+			int lastV = edge.third();
+			while (currentV != lastV)
+			{
+				int nextV = path[currentV][lastV];
+				routes.add(new Triple<>(currentV, nextV, 0)); // last element 0 since we don't care about weight anymore
+				currentV = nextV;
+			}
+		}
+
+		// step 4: return cost and routes to claim
+		// hobo fix: returning two nonhomogeneous items via array
+		return new Object[]{mst_cost, routes};
+	}
+
+	public static void steinerTreeExact()
+	{
+		out.println("Not supported yet");
+	}
+
+	public static void modifiedTSP()
+	{
+		out.println("Not supported yet");
 	}
 
 	public static boolean checkCities(String[] command)
