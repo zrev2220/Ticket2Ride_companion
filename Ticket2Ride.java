@@ -143,30 +143,16 @@ public class Ticket2Ride
 					// check cities
 					if (!checkCities(command))
 						continue;
-					// construct ticket to use to check existence in tickets
-					Ticket toRemove = new Ticket(command[1], command[2]);
-					if (tickets.contains(toRemove))
+
+					String cityA = command[1];
+					String cityB = command[2];
+					try
 					{
-						// remove ticket and decrement ticketCities entries
-						tickets.remove(toRemove);
-						int aTimes = ticketCities.get(toRemove.aIdx());
-						int bTimes = ticketCities.get(toRemove.bIdx());
-						// if this ticket is the last time the city is used, remove from ticketCities
-						// else decrement usages
-						if (aTimes == 1)
-							ticketCities.remove(toRemove.aIdx());
-						else
-							ticketCities.put(toRemove.aIdx(), aTimes - 1);
-						// repeat for b
-						if (bTimes == 1)
-							ticketCities.remove(toRemove.bIdx());
-						else
-							ticketCities.put(toRemove.bIdx(), bTimes - 1);
-						out.printf("Removed ticket %s to %s%n", command[1], command[2]);
-					}
-					else
+						removeTicket(cityA, cityB);
+						out.printf("Removed ticket %s to %s%n", cityA, cityB);
+					} catch (Exception ex)
 					{
-						out.printf("! %s to %s is not in the tickets list.%n", toRemove.aCity(), toRemove.bCity());
+						out.printf("! %s to %s is not in the tickets list.%n", cityA, cityB);
 					}
 				}
 			}
@@ -269,14 +255,14 @@ public class Ticket2Ride
 						// will use 2-approximation technique to solve
 
 						// step 1: build metric closure of cities (in form of edge list)
-						ArrayList<IntegerTriple> edgeList = new ArrayList<>();
+						ArrayList<Triple<Integer, Integer, Integer>> edgeList = new ArrayList<>();
 						for (int city : ticketCities.keySet())
 						{
 							for (int city2 : ticketCities.keySet())
 							{
 								if (city != city2)
 								{
-									IntegerTriple edge = new IntegerTriple(apsp[city][city2], city, city2); // form: weight, u, v; sort by weight
+									Triple<Integer, Integer, Integer> edge = new Triple<>(apsp[city][city2], city, city2); // form: weight, u, v; sort by weight
 									edgeList.add(edge);
 								}
 							}
@@ -285,11 +271,11 @@ public class Ticket2Ride
 
 						// step 2: find MST of cities on metric closure graph
 						UnionFind unionFind = new UnionFind(citiesMap.size());
-						ArrayList<IntegerTriple> mst = new ArrayList<>();
+						ArrayList<Triple<Integer, Integer, Integer>> mst = new ArrayList<>();
 						int mst_cost = 0;
 						for (int i = 0; i < edgeList.size(); ++i)
 						{
-							IntegerTriple nextEdge = edgeList.get(i);
+							Triple<Integer, Integer, Integer> nextEdge = edgeList.get(i);
 							if (!unionFind.isSameSet(nextEdge.second(), nextEdge.third()))
 							{
 								mst.add(nextEdge);
@@ -305,8 +291,8 @@ public class Ticket2Ride
 						edgeList = null; // don't need this anymore
 
 						// step 3: expand edges in metric closure mst to full paths in original graph
-						ArrayList<IntegerTriple> routes = new ArrayList<>();
-						for (IntegerTriple edge : mst)
+						ArrayList<Triple<Integer, Integer, Integer>> routes = new ArrayList<>();
+						for (Triple<Integer, Integer, Integer> edge : mst)
 						{
 							// for each edge in mst...
 							// ...follow path in <path> and add each edge to <routes>
@@ -315,7 +301,7 @@ public class Ticket2Ride
 							while (currentV != lastV)
 							{
 								int nextV = path[currentV][lastV];
-								routes.add(new IntegerTriple(currentV, nextV, 0)); // last element 0 since we don't care about weight anymore
+								routes.add(new Triple<>(currentV, nextV, 0)); // last element 0 since we don't care about weight anymore
 								currentV = nextV;
 							}
 						}
@@ -324,7 +310,7 @@ public class Ticket2Ride
 						if (mst_cost < 1000000)
 						{
 							out.printf("Route%s to claim:%n", routes.size() == 1 ? "" : "s");
-							for (IntegerTriple e : routes)
+							for (Triple<Integer, Integer, Integer> e : routes)
 								out.printf(" - %s to %s%n", cityIds.get(e.first()), cityIds.get(e.second()));
 
 							if (mst_cost <= 45)
@@ -394,7 +380,7 @@ public class Ticket2Ride
 		if (cityA.equals(cityB))
 			throw new Exception(String.format("1: Cities are identical (%s)", cityA));
 
-		// 
+		// check if ticket is already added
 		Ticket newTicket = new Ticket(cityA, cityB);
 		if (tickets.contains(newTicket))
 			throw new Exception(String.format("2: Ticket already in list (%s - %s)", cityA, cityB));
@@ -404,6 +390,21 @@ public class Ticket2Ride
 		// increment city usages
 		ticketCities.put(newTicket.aIdx(), ticketCities.getOrDefault(newTicket.aIdx(), 0) + 1);
 		ticketCities.put(newTicket.bIdx(), ticketCities.getOrDefault(newTicket.bIdx(), 0) + 1);
+	}
+
+	public static void removeTicket(String cityA, String cityB) throws Exception
+	{
+		// ensure ticket is in <tickets> list
+		Ticket toRemove = new Ticket(cityA, cityB);
+		if (!tickets.contains(toRemove))
+			throw new Exception(String.format("Ticket not in list (%s - %s)", cityA, cityB));
+
+		// remove ticket
+		tickets.remove(toRemove);
+
+		// decrement <ticketCities> entries
+		ticketCities.computeIfPresent(toRemove.aIdx(), (key, value) -> value == 1 ? null : value - 1);
+		ticketCities.computeIfPresent(toRemove.bIdx(), (key, value) -> value == 1 ? null : value - 1);
 	}
 
 	public static boolean checkCities(String[] command)
@@ -631,30 +632,4 @@ class UnionFind
 																		 if (rank.get(x) == rank.get(y)) rank.set(y, rank.get(y) + 1); } } }
 	public int numDisjointSets() { return numSets; }
 	public int sizeOfSet(int i) { return setSize.get(findSet(i)); }
-}
-
-class IntegerTriple implements Comparable<IntegerTriple>
-{
-	Integer _first, _second, _third;
-
-	public IntegerTriple(Integer f, Integer s, Integer t) {
-		_first = f;
-		_second = s;
-		_third = t;
-	}
-
-	public int compareTo(IntegerTriple o) {
-		if (!this.first().equals(((IntegerTriple)o).first()))
-			return this.first() - ((IntegerTriple)o).first();
-		else if (!this.second().equals(((IntegerTriple)o).second()))
-			return this.second() - ((IntegerTriple)o).second();
-		else
-			return this.third() - ((IntegerTriple)o).third();
-	}
-
-	Integer first() { return _first; }
-	Integer second() { return _second; }
-	Integer third() { return _third; }
-
-	public String toString() { return first() + " " + second() + " " + third(); }
 }
