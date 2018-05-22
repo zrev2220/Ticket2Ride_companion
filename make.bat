@@ -2,8 +2,8 @@
 
 if "%1"=="clean" goto clean
 
-echo javac Ticket2Ride.java Pair.java Triple.java
-javac Ticket2Ride.java Pair.java Triple.java
+echo javac *.java
+javac *.java
 goto done
 
 :clean

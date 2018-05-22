@@ -1,4 +1,4 @@
-public class Pair<T extends Comparable<T>, S extends Comparable<S>> implements Comparable<Pair<T, S>>
+public class Pair<T, S>
 {
 	private T _first;
 	private S _second;
@@ -11,13 +11,6 @@ public class Pair<T extends Comparable<T>, S extends Comparable<S>> implements C
 	public Pair(T first, S second) {
 		_first = first;
 		_second = second;
-	}
-
-	public int compareTo(Pair<T, S> other) {
-		if (!this.first().equals(other.first()))
-			return this.first().compareTo(other.first());
-		else
-			return this.second().compareTo(other.second());
 	}
 
 	T first() { return _first; }

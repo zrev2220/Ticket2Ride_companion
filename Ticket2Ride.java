@@ -241,12 +241,12 @@ public class Ticket2Ride
 					{
 						try
 						{
-							Object[] result = steinerTreeApprox();
-							int cost = (int) result[0];
-							ArrayList<Triple<Integer, Integer, Integer>> routes = (ArrayList<Triple<Integer, Integer, Integer>>) result[1];
+							Pair<Integer, ArrayList<OrderedTriple<Integer, Integer, Integer>>> result = steinerTreeApprox();
+							int cost = result.first();
+							ArrayList<OrderedTriple<Integer, Integer, Integer>> routes = result.second();
 							
 							out.printf("Route%s to claim:%n", routes.size() == 1 ? "" : "s");
-							for (Triple<Integer, Integer, Integer> e : routes)
+							for (OrderedTriple<Integer, Integer, Integer> e : routes)
 								out.printf(" - %s to %s%n", cityIds.get(e.first()), cityIds.get(e.second()));
 
 							if (cost <= 45)
@@ -366,21 +366,21 @@ public class Ticket2Ride
 		}
 	}
 
-	public static Object[] steinerTreeApprox() throws Exception
+	public static Pair<Integer, ArrayList<OrderedTriple<Integer, Integer, Integer>>> steinerTreeApprox() throws Exception
 	{
 		// minimum spanning tree: shortest path to connect all cities
 		// actually NP-hard Steiner Tree problem
 		// will use 2-approximation technique to solve
 
 		// step 1: build metric closure of cities (in form of edge list)
-		ArrayList<Triple<Integer, Integer, Integer>> edgeList = new ArrayList<>();
+		ArrayList<OrderedTriple<Integer, Integer, Integer>> edgeList = new ArrayList<>();
 		for (int city : ticketCities.keySet())
 		{
 			for (int city2 : ticketCities.keySet())
 			{
 				if (city != city2)
 				{
-					Triple<Integer, Integer, Integer> edge = new Triple<>(apsp[city][city2], city, city2); // form: weight, u, v; sort by weight
+					OrderedTriple<Integer, Integer, Integer> edge = new OrderedTriple<>(apsp[city][city2], city, city2); // form: weight, u, v; sort by weight
 					edgeList.add(edge);
 				}
 			}
@@ -389,11 +389,11 @@ public class Ticket2Ride
 
 		// step 2: find MST of cities on metric closure graph
 		UnionFind unionFind = new UnionFind(citiesMap.size());
-		ArrayList<Triple<Integer, Integer, Integer>> mst = new ArrayList<>();
+		ArrayList<OrderedTriple<Integer, Integer, Integer>> mst = new ArrayList<>();
 		int mst_cost = 0;
 		for (int i = 0; i < edgeList.size(); ++i)
 		{
-			Triple<Integer, Integer, Integer> nextEdge = edgeList.get(i);
+			OrderedTriple<Integer, Integer, Integer> nextEdge = edgeList.get(i);
 			if (!unionFind.isSameSet(nextEdge.second(), nextEdge.third()))
 			{
 				mst.add(nextEdge);
@@ -414,8 +414,8 @@ public class Ticket2Ride
 		edgeList = null; // don't need this anymore
 
 		// step 3: expand edges in metric closure mst to full paths in original graph
-		ArrayList<Triple<Integer, Integer, Integer>> routes = new ArrayList<>();
-		for (Triple<Integer, Integer, Integer> edge : mst)
+		ArrayList<OrderedTriple<Integer, Integer, Integer>> routes = new ArrayList<>();
+		for (OrderedTriple<Integer, Integer, Integer> edge : mst)
 		{
 			// for each edge in mst...
 			// ...follow path in <path> and add each edge to <routes>
@@ -424,14 +424,13 @@ public class Ticket2Ride
 			while (currentV != lastV)
 			{
 				int nextV = path[currentV][lastV];
-				routes.add(new Triple<>(currentV, nextV, 0)); // last element 0 since we don't care about weight anymore
+				routes.add(new OrderedTriple<>(currentV, nextV, 0)); // last element 0 since we don't care about weight anymore
 				currentV = nextV;
 			}
 		}
 
 		// step 4: return cost and routes to claim
-		// hobo fix: returning two nonhomogeneous items via array
-		return new Object[]{mst_cost, routes};
+		return new Pair<>(mst_cost, routes);
 	}
 
 	public static void steinerTreeExact()
