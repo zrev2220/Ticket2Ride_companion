@@ -8,4 +8,4 @@ This program is meant to assist with your route planning in the board game serie
 
 In a real game, it's very rare other players stay completely out of your way, so this program also allows you to "block" routes that other players have taken, forcing the algorithms to recompute the optimal paths around these routes.
 
-This program works for any Ticket to Ride map (or any weighted, undirected graph for that matter). The map is loaded from a text file which stores the map data in the form of an edge list. Currently, only the USA map file has been written, but files for other maps such as Europe and Germany can be easily added and are a future plan.
+This program works for any Ticket to Ride map (or any weighted, undirected graph for that matter). The map is loaded from a text file which stores the map data in the form of an edge list. Currently, only map files for the USA and Europe games have been written, but files for other maps such as Germany and Nordic Countries can be easily added and are a future plan.
