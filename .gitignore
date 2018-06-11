@@ -1,6 +1,5 @@
 *.xlsx
 *.class
-*.txt
 in.txt
 out.txt
 *.xml
