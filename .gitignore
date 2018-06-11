@@ -1,7 +1,8 @@
 *.xlsx
 *.class
 *.txt
-!usa.txt
+in.txt
+out.txt
 *.xml
 *.sublime-*
 *.jar
