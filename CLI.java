@@ -133,7 +133,7 @@ public class CLI
 			}
 			else if ("tickets".startsWith(command[0])) // print tickets
 			{
-				TreeSet<Ticket> tickets = Ticket2Ride.getInstance().ticketSet;
+				TreeSet<Ticket> tickets = Ticket2Ride.getInstance().getTicketSet();
 				out.printf("%d ticket%s%s%n", tickets.size(), tickets.size() == 1 ? "" : "s", tickets.size() > 0 ? ":" : "");
 				for (Ticket t : tickets)
 					out.printf("- %s to %s%n", t.aCity(), t.bCity());
@@ -199,7 +199,7 @@ public class CLI
 					out.println("  Usage: path type");
 					out.println("  where type is either MST or TSP");
 				}
-				else if (Ticket2Ride.getInstance().ticketSet.isEmpty())
+				else if (Ticket2Ride.getInstance().getTicketSet().isEmpty())
 				{
 					out.println("! No tickets have been added");
 					out.println("  Add some tickets to compute a path!");
@@ -218,7 +218,8 @@ public class CLI
 							
 							out.printf("Route%s to claim:%n", routes.size() == 1 ? "" : "s");
 							for (OrderedTriple<Integer, Integer, Integer> e : routes)
-								out.printf(" - %s to %s%n", Ticket2Ride.getInstance().intToCity.get(e.first()), Ticket2Ride.getInstance().intToCity.get(e.second()));
+								out.printf(" - %s to %s%n", Ticket2Ride.getInstance().getIntToCityMap().get(e.first()),
+															Ticket2Ride.getInstance().getIntToCityMap().get(e.second()));
 
 							if (cost <= 45)
 								out.printf("You will need %d trains to claim these routes.%n", cost);
@@ -285,7 +286,7 @@ public class CLI
 		{
 			// convert city case to lowercase
 			command[i] = command[i].toLowerCase();
-			TreeMap<String, Integer> cityToInt = Ticket2Ride.getInstance().cityToInt;
+			TreeMap<String, Integer> cityToInt = Ticket2Ride.getInstance().getCityToIntMap();
 			if (!cityToInt.containsKey(command[i]) && (cityToInt.ceilingKey(command[i]) == null || !cityToInt.ceilingKey(command[i]).startsWith(command[i])))
 			{
 				// can't find exact key or key prefix
@@ -346,8 +347,8 @@ public class CLI
 		// build apsp before we can print it
 		Ticket2Ride.getInstance().buildAPSP();
 
-		Iterator<Map.Entry<Integer, String>> it1 = Ticket2Ride.getInstance().intToCity.entrySet().iterator();
-		Iterator<Map.Entry<String, Integer>> it2 = Ticket2Ride.getInstance().cityToInt.entrySet().iterator();
+		Iterator<Map.Entry<Integer, String>> it1 = Ticket2Ride.getInstance().getIntToCityMap().entrySet().iterator();
+		Iterator<Map.Entry<String, Integer>> it2 = Ticket2Ride.getInstance().getCityToIntMap().entrySet().iterator();
 		for (; it1.hasNext();)
 		{
 			Map.Entry<Integer, String> e1 = it1.next();
@@ -355,7 +356,7 @@ public class CLI
 			out.printf("%2d - %-13s              %-13s - %2d%n", e1.getKey(), e1.getValue(), e2.getKey(), e2.getValue());
 		}
 		out.printf("%n   ");
-		int[][] apsp = Ticket2Ride.getInstance().apsp;
+		int[][] apsp = Ticket2Ride.getInstance().getApsp();
 		for (int i = 0; i < apsp.length; ++i)
 			out.printf(" %2d", i);
 		out.printf("%n   ");
@@ -370,7 +371,7 @@ public class CLI
 			out.println();
 		}
 
-		int[][] path = Ticket2Ride.getInstance().path;
+		int[][] path = Ticket2Ride.getInstance().getPath();
 		out.println("\n------ Path ------");
 		out.printf("%n   ");
 		for (int i = 0; i < path.length; ++i)

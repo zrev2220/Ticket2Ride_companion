@@ -3,14 +3,15 @@ import java.io.*;
 
 public class Ticket2Ride
 {
-	public TreeMap<String, Integer> cityToInt = new TreeMap<>();
-	public TreeMap<Integer, String> intToCity = new TreeMap<>();
-	public TreeSet<Ticket> ticketSet = new TreeSet<>();
-	public TreeMap<Integer, Integer> cityUsages = new TreeMap<>();
-	public int[][] adjMat;
-	public int[][] apsp;
-	public int[][] path;
-	public boolean apspConstructed = false;
+	private TreeMap<String, Integer> cityToInt = new TreeMap<>();
+	private TreeMap<Integer, String> intToCity = new TreeMap<>();
+	private TreeSet<Ticket> ticketSet = new TreeSet<>();
+	private TreeMap<Integer, Integer> cityUsages = new TreeMap<>();
+	private int[][] adjMat;
+	private int[][] apsp;
+	private int[][] path;
+	private boolean apspConstructed = false;
+
 	private static Ticket2Ride instance = null;
 	private final int INF = 1000000000;
 
@@ -25,6 +26,15 @@ public class Ticket2Ride
 			instance = new Ticket2Ride();
 		return instance;
 	}
+
+	// getter methods
+	public TreeMap<String, Integer> getCityToIntMap() { return cityToInt; }
+	public TreeMap<Integer, String> getIntToCityMap() { return intToCity; }
+	public TreeSet<Ticket> getTicketSet() { return ticketSet; }
+	public TreeMap<Integer, Integer> getCityUsages() { return cityUsages; }
+	public int[][] getAdjMat() { return adjMat; }
+	public int[][] getApsp() { return apsp; }
+	public int[][] getPath() { return path; }
 
 	public void loadMap(String filename) throws IOException
 	{
@@ -162,10 +172,10 @@ public class Ticket2Ride
 				break;
 			}
 		}
-		edgeList = null; // don't need this anymore
+		edgeList.clear(); // don't need this anymore
 
 		// step 3: expand edges in metric closure mst to full paths in original graph
-		ArrayList<OrderedTriple<Integer, Integer, Integer>> routes = new ArrayList<>();
+		TreeSet<OrderedTriple<Integer, Integer, Integer>> routes = new TreeSet<>();
 		for (OrderedTriple<Integer, Integer, Integer> edge : mst)
 		{
 			// for each edge in mst...
@@ -175,13 +185,16 @@ public class Ticket2Ride
 			while (currentV != lastV)
 			{
 				int nextV = path[currentV][lastV];
-				routes.add(new OrderedTriple<>(currentV, nextV, 0)); // last element 0 since we don't care about weight anymore
+				if (!routes.add(new OrderedTriple<>(currentV, nextV, 0))) {
+					// duplicate edge! reduce cost
+					mst_cost -= adjMat[currentV][nextV];
+				}
 				currentV = nextV;
 			}
 		}
 
 		// step 4: return cost and routes to claim
-		return new Pair<>(mst_cost, routes);
+		return new Pair<>(mst_cost, new ArrayList<>(routes));
 	}
 
 	public void steinerTreeExact()

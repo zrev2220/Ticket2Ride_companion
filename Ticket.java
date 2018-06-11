@@ -7,7 +7,7 @@ public class Ticket implements Comparable
 
 	public Ticket(String a, String b)
 	{
-		if (Ticket2Ride.getInstance().cityToInt.get(a) > Ticket2Ride.getInstance().cityToInt.get(b))
+		if (Ticket2Ride.getInstance().getCityToIntMap().get(a) > Ticket2Ride.getInstance().getCityToIntMap().get(b))
 		{
 			// swap a and b so that a < b
 			String tmp = a;
@@ -16,8 +16,8 @@ public class Ticket implements Comparable
 		}
 		this.aCity = a;
 		this.bCity = b;
-		this.aIdx = Ticket2Ride.getInstance().cityToInt.get(a);
-		this.bIdx = Ticket2Ride.getInstance().cityToInt.get(b);
+		this.aIdx = Ticket2Ride.getInstance().getCityToIntMap().get(a);
+		this.bIdx = Ticket2Ride.getInstance().getCityToIntMap().get(b);
 	}
 
 	public Ticket(int a, int b)
@@ -29,8 +29,8 @@ public class Ticket implements Comparable
 			a = b;
 			b = tmp;
 		}
-		this.aCity = Ticket2Ride.getInstance().intToCity.get(a);
-		this.bCity = Ticket2Ride.getInstance().intToCity.get(b);
+		this.aCity = Ticket2Ride.getInstance().getIntToCityMap().get(a);
+		this.bCity = Ticket2Ride.getInstance().getIntToCityMap().get(b);
 		this.aIdx = a;
 		this.bIdx = b;
 	}
