@@ -10,7 +10,7 @@ public class CLI
 	{
 		Scanner in = new Scanner(System.in);
 		out.println("==============================================");
-		out.println("Welcome to Ticket to Ride Java companion!");
+		out.println("  Welcome to Ticket to Ride Java companion!");
 		out.println("                e@@@@@@@@@@@@@@@\n"
 				  + "               @@@\"\"\"\"\"\"\"\"\"\"\n"
 				  + "              @\" ___ ___________\n"
@@ -128,8 +128,11 @@ public class CLI
 			}
 			else if ("reset".startsWith(command[0])) // reset tickets & blocks
 			{
+				int nTickets = Ticket2Ride.getInstance().getTicketSet().size();
+				int nBlocked = Ticket2Ride.getInstance().getBlockedRoutes().size();
 				Ticket2Ride.getInstance().resetModel();
-				out.println("All tickets removed");
+				out.printf("All tickets removed (%d)%n", nTickets);
+				out.printf("All routes unblocked (%d)%n", nBlocked);
 			}
 			else if ("tickets".startsWith(command[0])) // print tickets
 			{
@@ -141,10 +144,22 @@ public class CLI
 			else if ("block".startsWith(command[0])) // block route
 			{
 				// validate argument count
-				if (command.length != 3)
+				if (command.length != 3 && command.length != 1)
 				{
 					out.println("! Incorrect argument count");
-					out.println("  Usage: block city1 city2");
+					out.println("  Usage: block [city1 city2]");
+				}
+				else if (command.length == 1)
+				{
+					// display all blocked routes
+					if (Ticket2Ride.getInstance().getBlockedRoutes().isEmpty())
+						out.println("No blocked routes");
+					else
+					{
+						out.println("Blocked routes:");
+						for (Ticket route : Ticket2Ride.getInstance().getBlockedRoutes())
+							out.printf(" - %s to %s%n", route.aCity(), route.bCity());
+					}
 				}
 				else
 				{
@@ -160,7 +175,17 @@ public class CLI
 						out.printf("Blocked route %s to %s%n", cityA, cityB);
 					} catch (Exception ex)
 					{
-						out.printf("! %s to %s is already blocked.%n", cityA, cityB);
+						String errmsg = ex.getMessage();
+						if (errmsg.startsWith("1"))
+						{
+							// route already blocked
+							out.printf("! %s to %s is already blocked.%n", cityA, cityB);
+						}
+						else if (errmsg.startsWith("2"))
+						{
+							// cities not adjacent, blocking unnecessary
+							out.printf("! %s and %s are not connected by a route.%n", cityA, cityB);
+						}
 					}
 				}
 			}
@@ -265,7 +290,7 @@ public class CLI
 				out.println("                 MST computes the routes to claim in order to fulfill all tickets with the least number of trains,");
 				out.println("                   but not necessarily maintaining a continuous train route");
 				out.println("                 TSP computes the routes to claim in order to fulfill all tickets while maintaining a continuous");
-				out.println("                   train route (will use many more trains)");
+				out.println("                   train route (will use more trains)");
 				out.println("  - debug -- print debug info");
 				out.println("  - exit/quit -- exit the program");
 				out.println("  - help -- displays this help message");

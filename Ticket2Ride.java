@@ -7,6 +7,7 @@ public class Ticket2Ride
 	private TreeMap<Integer, String> intToCity = new TreeMap<>();
 	private TreeSet<Ticket> ticketSet = new TreeSet<>();
 	private TreeMap<Integer, Integer> cityUsages = new TreeMap<>();
+	private TreeSet<Ticket> blockedRoutes = new TreeSet<>();
 	private int[][] adjMat;
 	private int[][] apsp;
 	private int[][] path;
@@ -32,6 +33,7 @@ public class Ticket2Ride
 	public TreeMap<Integer, String> getIntToCityMap() { return intToCity; }
 	public TreeSet<Ticket> getTicketSet() { return ticketSet; }
 	public TreeMap<Integer, Integer> getCityUsages() { return cityUsages; }
+	public TreeSet<Ticket> getBlockedRoutes() { return blockedRoutes; }
 	public int[][] getAdjMat() { return adjMat; }
 	public int[][] getApsp() { return apsp; }
 	public int[][] getPath() { return path; }
@@ -106,7 +108,14 @@ public class Ticket2Ride
 		// remove all tickets
 		ticketSet.clear();
 		cityUsages.clear();
-		// TODO unblock all routes
+		// unblock all routes
+		for (Ticket toUnblock : blockedRoutes)
+		{
+			try {
+				blockRoute(false, toUnblock.aCity(), toUnblock.bCity());
+			} catch (Exception ex) {}
+		}
+		blockedRoutes.clear();
 	}
 
 	public void blockRoute(boolean block, String cityA, String cityB) throws Exception
@@ -115,15 +124,24 @@ public class Ticket2Ride
 		int a = cityToInt.get(cityA);
 		int b = cityToInt.get(cityB);
 		int delta = block ? 1 : -1;
-		if (!(adjMat[a][b] > 1000000 ^ block))
+		Ticket route = new Ticket(a, b);
+		if (!(blockedRoutes.contains(route) ^ block))
 		{
-			throw new Exception(String.format("Route already %sblocked (%s - %s)", !block ? "un" : "", cityA, cityB));
+			throw new Exception(String.format("1 - Route already %sblocked (%s - %s)", !block ? "un" : "", cityA, cityB));
+		}
+		else if (block && adjMat[a][b] == 0)
+		{
+			throw new Exception(String.format("2 - Cities not adjacent (%s - %s)", cityA, cityB));
 		}
 		else
 		{
 			adjMat[a][b] += 1000000 * delta;
 			adjMat[b][a] += 1000000 * delta;
 			apspConstructed = false;
+			if (block)
+				blockedRoutes.add(route);
+			else
+				blockedRoutes.remove(route);
 		}
 	}
 
